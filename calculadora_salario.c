@@ -1,42 +1,40 @@
 #include <stdio.h>
-#include <stdlib.h> // Recomendado para malloc/free e exit()
+#include <stdlib.h>
+#include <string.h>
+#include <emscripten/emscripten.h> // Header obrigatório para exportar funções
 
-struct Funcionario{
-  char nomeCompleto[100];
-  float salarioBruto;
-  float descontoINSS;
-};
+// --- Estruturas e Cálculos ---
 
-float calcularSalarioLiquido(struct Funcionario funcionario){
-  float desconto = funcionario.salarioBruto * (funcionario.descontoINSS / 100.0f);
-  return funcionario.salarioBruto - desconto;
+// Estrutura Funcionario
+typedef struct {
+  char nomeCompleto[100];
+  float salarioBruto;
+  float descontoINSS;
+} Funcionario;
+
+// Função de cálculo pura
+// É a lógica principal que queremos que o Wasm execute
+float calcularSalarioLiquido(float salarioBruto, float descontoINSS) {
+  float desconto = salarioBruto * (descontoINSS / 100.0f);
+  return salarioBruto - desconto;
 }
 
-int main(void) {
-  int numFuncionarios;
+// Função wrapper para ser chamada pelo JavaScript
+// Aceita os valores (float e float) e retorna o resultado
+// EMSCRIPTEN_KEEPALIVE garante que a função não será removida pelo otimizador
+EMSCRIPTEN_KEEPALIVE
+float calcularSalarioLiquidoWasm(float salarioBruto, float descontoINSS) {
+  // Chamada para a função de cálculo pura
+  return calcularSalarioLiquido(salarioBruto, descontoINSS);
+}
 
-  printf("Digite o número de funcionários:");
-  scanf("%d",&numFuncionarios);
+// --- Funções de Entrada/Saída e Main (Opcional, se o console for necessário) ---
 
-  struct Funcionario funcionario[numFuncionarios];
-
-  for(int i = 0; i < numFuncionarios; i++){
-    printf("Funcionário %d:\n", i + 1);
-    printf("Nome Completo: ");
-    scanf(" %[^\n]s",funcionario[i].nomeCompleto);
-    printf("Salário Bruto: ");
-    scanf("%f", &funcionario[i].salarioBruto);
-    printf("Desconto do INSS (em porcentagem): ");
-    scanf("%f", &funcionario[i].descontoINSS);
-  }
-  printf("\nRelatório de Salários Líquidos:\n");
-
-  for(int i = 0; i < numFuncionarios; i++){
-    float salarioLiquido = calcularSalarioLiquido(funcionario[i]);
-    printf("Funcionário: %s\n", funcionario[i].nomeCompleto);
-    printf("Salário Líquido: R$%.2f\n",salarioLiquido);
-    printf("\n");
-  }
-  
-  return 0;
+// Se você deseja exportar a função principal para rodar no console Wasm
+EMSCRIPTEN_KEEPALIVE
+int main() {
+  // NO Wasm, é melhor que main() não contenha I/O interativo.
+  // O I/O é tratado pelo JavaScript.
+  printf("WebAssembly pronto. Chame 'calcularSalarioLiquidoWasm' do JavaScript.\n");
+  return 0;
 }
